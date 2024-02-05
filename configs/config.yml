@@ -31,5 +31,5 @@ jwt:
   secret: yoursecret
 #elastic
 elastic:
-  path: 127.0.0.1
+  path: http://127.0.0.1
   port: 9200

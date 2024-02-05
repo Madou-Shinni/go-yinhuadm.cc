@@ -1,8 +1,10 @@
 package data
 
 import (
-    "errors"
-    "fmt"
+	"errors"
+	"fmt"
+	"github.com/Madou-Shinni/gin-quickstart/common"
+	glob "github.com/Madou-Shinni/gin-quickstart/global"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/global"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
@@ -25,16 +27,16 @@ func (s *VideoRepo) DeleteByIds(ids request.Ids) error {
 }
 
 func (s *VideoRepo) Update(video map[string]interface{}) error {
-    var columns []string
+	var columns []string
 	for key := range video {
 		columns = append(columns, key)
 	}
-	if _,ok := video["id"];!ok {
-        // 不存在id
-        return errors.New(fmt.Sprintf("missing %s.id","video"))
-    }
+	if _, ok := video["id"]; !ok {
+		// 不存在id
+		return errors.New(fmt.Sprintf("missing %s.id", "video"))
+	}
 	model := domain.Video{}
-	model.ID = uint(video["id"].(float64))
+	//model.ID = uint(video["id"].(float64))
 	return global.DB.Model(&model).Select(columns).Updates(&video).Error
 }
 
@@ -47,21 +49,24 @@ func (s *VideoRepo) Find(video domain.Video) (domain.Video, error) {
 	return video, res.Error
 }
 
-func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, error) {
+func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, error) {
 	var (
 		videoList []domain.Video
-		err      error
+		total     int64
+		err       error
 	)
-	// db
-	db := global.DB.Model(&domain.Video{})
+
 	// page
-	offset, limit := pagelimit.OffsetLimit(page.PageNum, page.PageSize)
+	from, size := pagelimit.OffsetLimit(page.PageNum, page.PageSize)
 
-	// TODO：条件过滤
+	searchFields := []string{"title", "introduction"}
 
-	err = db.Offset(offset).Limit(limit).Find(&videoList).Error
+	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	return videoList, err
+	return videoList, total, err
 }
 
 func (s *VideoRepo) Count(page domain.PageVideoSearch) (int64, error) {

@@ -15,7 +15,7 @@ type VideoRepo interface {
 	Delete(video domain.Video) error
 	Update(video map[string]interface{}) error
 	Find(video domain.Video) (domain.Video, error)
-	List(page domain.PageVideoSearch) ([]domain.Video, error)
+	List(page domain.PageVideoSearch) ([]domain.Video, int64, error)
 	Count(page domain.PageVideoSearch) (int64, error)
 	DeleteByIds(ids request.Ids) error
 }
@@ -73,20 +73,14 @@ func (s *VideoService) List(page domain.PageVideoSearch) (response.PageResponse,
 		pageRes response.PageResponse
 	)
 
-	data, err := s.repo.List(page)
+	data, total, err := s.repo.List(page)
 	if err != nil {
 		logger.Error("s.repo.List(page)", zap.Error(err), zap.Any("domain.PageVideoSearch", page))
 		return pageRes, err
 	}
 
-	count, err := s.repo.Count(page)
-	if err != nil {
-		logger.Error("s.repo.Count()", zap.Error(err))
-		return pageRes, err
-	}
-
 	pageRes.List = data
-	pageRes.Total = count
+	pageRes.Total = total
 
 	return pageRes, nil
 }

@@ -139,7 +139,7 @@ func (cl *VideoHandle) Find(c *gin.Context) {
 // @Summary  查询Video列表
 // @accept   application/json
 // @Produce  application/json
-// @Param    data query     domain.Video true "查询Video列表"
+// @Param    data query     domain.PageVideoSearch true "查询Video列表"
 // @Success  200  {string} string            "{"code":200,"msg":"查询成功","data":{}"}"
 // @Router   /video/list [get]
 func (cl *VideoHandle) List(c *gin.Context) {
