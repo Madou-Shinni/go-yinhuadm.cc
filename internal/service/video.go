@@ -127,7 +127,7 @@ func (s *VideoService) Home() (resp.Home, error) {
 	}
 
 	for _, hit := range res.Hits.Hits {
-		err := json.Unmarshal(hit.Source, &home)
+		err = json.Unmarshal(hit.Source, &home)
 		if err != nil {
 			return home, err
 		}
@@ -146,7 +146,7 @@ func (s *VideoService) Home() (resp.Home, error) {
 	// 创建 Terms 查询 查询ids中的数据
 	type UpdateAtData struct {
 		ID       int       `json:"id"`
-		updateAt time.Time `json:"updateAt"`
+		UpdateAt time.Time `json:"updateAt"`
 	}
 	termsQuery := elastic.NewTermsQuery("id", ids...)
 	resp, err := glob.Es.Search().Index("videos").Query(termsQuery).Size(len(ids)).Do(context.Background())
@@ -158,12 +158,12 @@ func (s *VideoService) Home() (resp.Home, error) {
 	weekMap := make(map[int]string, len(resp.Hits.Hits))
 	for _, hit := range resp.Hits.Hits {
 		var updateAtData UpdateAtData
-		err := json.Unmarshal(hit.Source, &updateAtData)
+		err = json.Unmarshal(hit.Source, &updateAtData)
 		if err != nil {
 			return home, err
 		}
 		// 转周几
-		key := updateAtData.updateAt.Weekday()
+		key := updateAtData.UpdateAt.Weekday()
 		weekMap[updateAtData.ID] = weekdayMap[key]
 	}
 
