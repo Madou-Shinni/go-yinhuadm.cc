@@ -12,9 +12,10 @@ type Module struct {
 
 // Content 内容
 type Content struct {
-	ID    int    `json:"id,omitempty"`
-	Note  string `json:"note,omitempty"`
-	Cover string `json:"cover,omitempty"`
-	Title string `json:"title,omitempty"`
-	Sort  int    `json:"sort,omitempty"`
+	ID      int    `json:"id,omitempty"`
+	Note    string `json:"note,omitempty"`
+	Cover   string `json:"cover,omitempty"`
+	Title   string `json:"title,omitempty"`
+	Sort    int    `json:"sort,omitempty"`
+	Weekday string `json:"weekday,omitempty"`
 }

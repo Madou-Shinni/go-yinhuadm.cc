@@ -158,3 +158,20 @@ func (cl *VideoHandle) List(c *gin.Context) {
 
 	response.Success(c, res)
 }
+
+// Home 查询Home
+// @Tags     Home
+// @Summary  查询Video列表
+// @accept   application/json
+// @Produce  application/json
+// @Success  200  {string} string            "{"code":200,"msg":"查询成功","data":{}"}"
+// @Router   /home [get]
+func (cl *VideoHandle) Home(c *gin.Context) {
+	res, err := cl.s.Home()
+	if err != nil {
+		response.Error(c, constant.CODE_FIND_FAILED, constant.CODE_FIND_FAILED.Msg())
+		return
+	}
+
+	response.Success(c, res)
+}

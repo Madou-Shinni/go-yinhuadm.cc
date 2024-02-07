@@ -1,13 +1,31 @@
 package service
 
 import (
+	"context"
+	"fmt"
+	glob "github.com/Madou-Shinni/gin-quickstart/global"
 	"github.com/Madou-Shinni/gin-quickstart/internal/data"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
+	"github.com/Madou-Shinni/gin-quickstart/internal/domain/resp"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/response"
 	"github.com/Madou-Shinni/go-logger"
+	"github.com/goccy/go-json"
+	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
+	"time"
 )
+
+// 如果您需要将星期几转换为中文，您可以使用一个 map 来进行转换
+var weekdayMap = map[time.Weekday]string{
+	time.Sunday:    "周日",
+	time.Monday:    "周一",
+	time.Tuesday:   "周二",
+	time.Wednesday: "周三",
+	time.Thursday:  "周四",
+	time.Friday:    "周五",
+	time.Saturday:  "周六",
+}
 
 // 定义接口
 type VideoRepo interface {
@@ -92,4 +110,68 @@ func (s *VideoService) DeleteByIds(ids request.Ids) error {
 	}
 
 	return nil
+}
+
+func (s *VideoService) Home() (resp.Home, error) {
+	var (
+		home resp.Home
+	)
+
+	query := elastic.NewMatchAllQuery()
+	res, err := glob.Es.Search().Index().Query(query).Do(context.Background())
+	if err != nil {
+		return home, err
+	}
+	if res.Hits == nil {
+		return home, fmt.Errorf("searchResult.Hits is nil")
+	}
+
+	for _, hit := range res.Hits.Hits {
+		err := json.Unmarshal(hit.Source, &home)
+		if err != nil {
+			return home, err
+		}
+	}
+
+	/*
+		以下查询是为了获取视频的更新时间，然后转换为星期几
+	*/
+	// 获取ids
+	var ids []interface{}
+	if home.Modules != nil {
+		for _, v := range home.Modules[0].ContentList {
+			ids = append(ids, v.ID)
+		}
+	}
+	// 创建 Terms 查询 查询ids中的数据
+	type UpdateAtData struct {
+		ID       int       `json:"id"`
+		updateAt time.Time `json:"updateAt"`
+	}
+	termsQuery := elastic.NewTermsQuery("id", ids...)
+	resp, err := glob.Es.Search().Index("videos").Query(termsQuery).Do(context.Background())
+	if err != nil {
+		return home, err
+	}
+
+	// 获取周几
+	weekMap := make(map[int]string, len(resp.Hits.Hits))
+	for _, hit := range resp.Hits.Hits {
+		var updateAtData UpdateAtData
+		err := json.Unmarshal(hit.Source, &updateAtData)
+		if err != nil {
+			return home, err
+		}
+		// 转周几
+		key := updateAtData.updateAt.Weekday()
+		weekMap[updateAtData.ID] = weekdayMap[key]
+	}
+
+	// 更新星期几
+	for i, v := range home.Modules[0].ContentList {
+		v.Weekday = weekMap[v.ID]
+		home.Modules[0].ContentList[i] = v
+	}
+
+	return home, nil
 }
