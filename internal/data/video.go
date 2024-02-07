@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/Madou-Shinni/gin-quickstart/common"
@@ -9,6 +10,8 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/pkg/global"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/tools/pagelimit"
+	"github.com/goccy/go-json"
+	"github.com/olivere/elastic/v7"
 )
 
 type VideoRepo struct {
@@ -41,12 +44,20 @@ func (s *VideoRepo) Update(video map[string]interface{}) error {
 }
 
 func (s *VideoRepo) Find(video domain.Video) (domain.Video, error) {
-	db := global.DB.Model(&domain.Video{})
-	// TODO：条件过滤
+	ctx := context.Background()
+	resp, err := glob.Es.Search().Index(video.Index()).Query(elastic.NewTermQuery("id", video.ID)).Do(ctx)
+	if err != nil {
+		return domain.Video{}, err
+	}
 
-	res := db.First(&video)
+	if len(resp.Hits.Hits) > 0 {
+		err = json.Unmarshal(resp.Hits.Hits[0].Source, &video)
+		if err != nil {
+			return domain.Video{}, err
+		}
+	}
 
-	return video, res.Error
+	return video, nil
 }
 
 func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, error) {
@@ -64,6 +75,10 @@ func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, er
 	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	for i := range videoList {
+		videoList[i].EpisodeList = make([]domain.Episode, 0)
 	}
 
 	return videoList, total, err

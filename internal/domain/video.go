@@ -7,7 +7,7 @@ import (
 
 // Video 视频
 type Video struct {
-	ID           int64          `json:"id,omitempty"`
+	ID           int64          `json:"id,omitempty" form:"id"`
 	Title        string         `json:"title,omitempty"`
 	Tags         []string       `json:"tags,omitempty"`
 	Cover        string         `json:"cover,omitempty"`

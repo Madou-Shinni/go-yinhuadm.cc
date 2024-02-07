@@ -13,6 +13,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
+	"strings"
 	"time"
 )
 
@@ -82,6 +83,9 @@ func (s *VideoService) Find(video domain.Video) (domain.Video, error) {
 		logger.Error("s.repo.Find(video)", zap.Error(err), zap.Any("domain.Video", video))
 		return res, err
 	}
+
+	res.Director = strings.TrimSuffix(res.Director, "/")
+	res.Screenwriter = strings.TrimSuffix(res.Screenwriter, "/")
 
 	return res, nil
 }
