@@ -14,6 +14,8 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -208,5 +210,33 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 		return result, err
 	}
 
+	numbers := extractNumber(result.LinkNext)
+	if len(numbers) == 3 {
+		id := strconv.Itoa(numbers[0])
+		sid := strconv.Itoa(numbers[1])
+		nid := strconv.Itoa(numbers[2])
+		result.LinkNext = fmt.Sprintf("/play/%s/%s/%s", id, sid, nid)
+	}
+
 	return result, nil
+}
+
+// extractNumber 提取字符串中的数字
+func extractNumber(input string) []int {
+	// 定义一个匹配数字的正则表达式
+	re := regexp.MustCompile(`\d+`)
+
+	// 查找匹配的部分
+	matches := re.FindAllString(input, -1)
+
+	// 如果找到匹配的数字，则返回第一个匹配的结果
+	if len(matches) > 0 {
+		num1, _ := strconv.Atoi(matches[0])
+		num2, _ := strconv.Atoi(matches[1])
+		num3, _ := strconv.Atoi(matches[2])
+		return []int{num1, num2, num3}
+	}
+
+	// 如果未找到匹配的数字，返回空字符串或其他合适的默认值
+	return nil
 }

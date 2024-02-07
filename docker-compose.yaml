@@ -1,0 +1,13 @@
+version: '3'
+services:
+  server:
+    build:
+      context: .
+      # 指定dockerfile启动容器
+      dockerfile: ./Dockerfile
+    container_name: go-yinhuadm.cc
+    restart: always
+    ports:
+      - "10001:8080"
+    volumes:
+      - ${SERVER_DIR}/configs/config.yml:/app/configs/config.yml
