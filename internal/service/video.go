@@ -149,7 +149,7 @@ func (s *VideoService) Home() (resp.Home, error) {
 		updateAt time.Time `json:"updateAt"`
 	}
 	termsQuery := elastic.NewTermsQuery("id", ids...)
-	resp, err := glob.Es.Search().Index("videos").Query(termsQuery).Do(context.Background())
+	resp, err := glob.Es.Search().Index("videos").Query(termsQuery).Size(len(ids)).Do(context.Background())
 	if err != nil {
 		return home, err
 	}
