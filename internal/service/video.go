@@ -6,6 +6,7 @@ import (
 	glob "github.com/Madou-Shinni/gin-quickstart/global"
 	"github.com/Madou-Shinni/gin-quickstart/internal/data"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
+	"github.com/Madou-Shinni/gin-quickstart/internal/domain/req"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain/resp"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/response"
@@ -178,4 +179,34 @@ func (s *VideoService) Home() (resp.Home, error) {
 	}
 
 	return home, nil
+}
+
+func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
+	var err error
+	var result resp.PlayResp
+
+	// 构建多字段 term 查询
+	termQuery1 := elastic.NewTermQuery("id", req.VideoID)
+	termQuery2 := elastic.NewTermQuery("sid", req.PlayLine)
+	termQuery3 := elastic.NewTermQuery("nid", req.EpisodeID)
+
+	// 创建 Bool 查询
+	boolQuery := elastic.NewBoolQuery()
+	boolQuery = boolQuery.Must(termQuery1, termQuery2, termQuery3)
+
+	resp, err := glob.Es.Search().Index("plays").Query(boolQuery).Do(context.Background())
+	if err != nil {
+		return result, err
+	}
+
+	if len(resp.Hits.Hits) == 0 {
+		return result, nil
+	}
+
+	err = json.Unmarshal(resp.Hits.Hits[0].Source, &result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }

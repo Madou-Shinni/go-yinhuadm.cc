@@ -2,6 +2,7 @@ package handle
 
 import (
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
+	"github.com/Madou-Shinni/gin-quickstart/internal/domain/req"
 	"github.com/Madou-Shinni/gin-quickstart/internal/service"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/constant"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
@@ -174,4 +175,28 @@ func (cl *VideoHandle) Home(c *gin.Context) {
 	}
 
 	response.Success(c, res)
+}
+
+// Play 查询Video
+// @Tags     Video
+// @Summary  查询Video
+// @accept   application/json
+// @Produce  application/json
+// @Param    data query     domain.Video true "查询Video"
+// @Success  200  {string} string            "{"code":200,"msg":"查询成功","data":{}"}"
+// @Router   /video/play [get]
+func (cl *VideoHandle) Play(context *gin.Context) {
+	var request req.PlayReq
+	if err := context.ShouldBindQuery(&request); err != nil {
+		response.Error(context, constant.CODE_INVALID_PARAMETER, constant.CODE_INVALID_PARAMETER.Msg())
+		return
+	}
+
+	res, err := cl.s.Play(request)
+	if err != nil {
+		response.Error(context, constant.CODE_FIND_FAILED, constant.CODE_FIND_FAILED.Msg())
+		return
+	}
+
+	response.Success(context, res)
 }
