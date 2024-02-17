@@ -211,7 +211,7 @@ func (cl *VideoHandle) Play(context *gin.Context) {
 // @Router   /video/play [put]
 func (cl *VideoHandle) ReloadPlay(context *gin.Context) {
 	var request req.PlayReq
-	if err := context.ShouldBindQuery(&request); err != nil {
+	if err := context.ShouldBindJSON(&request); err != nil {
 		response.Error(context, constant.CODE_INVALID_PARAMETER, constant.CODE_INVALID_PARAMETER.Msg())
 		return
 	}

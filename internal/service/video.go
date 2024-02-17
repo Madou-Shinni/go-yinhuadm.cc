@@ -239,7 +239,10 @@ func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
 		return nil
 	}
 	// 半小时更新一次
-	tools.SetRedisStrResult[bool](rdb, string(marshal), true, time.Minute*30)
+	_, err = tools.SetRedisStrResult[bool](rdb, string(marshal), true, time.Minute*30)
+	if err != nil {
+		return err
+	}
 	message_queue.RedisMessagePublish(rdb, "plays", playReq)
 	return nil
 }
