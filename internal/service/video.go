@@ -8,8 +8,11 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain/req"
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain/resp"
+	"github.com/Madou-Shinni/gin-quickstart/pkg/global"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/response"
+	"github.com/Madou-Shinni/gin-quickstart/pkg/tools"
+	"github.com/Madou-Shinni/gin-quickstart/pkg/tools/message_queue"
 	"github.com/Madou-Shinni/go-logger"
 	"github.com/goccy/go-json"
 	"github.com/olivere/elastic/v7"
@@ -219,6 +222,26 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 	}
 
 	return result, nil
+}
+
+func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
+	query := elastic.NewTermQuery("videoId", playReq.VideoID)
+	_, err := glob.Es.DeleteByQuery("plays").Query(query).Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	// 发布消息更新播放页
+	rdb := global.Rdb
+	marshal, _ := json.Marshal(playReq)
+	val := rdb.Exists(string(marshal)).Val()
+	if val != 0 {
+		return nil
+	}
+	// 半小时更新一次
+	tools.SetRedisStrResult[bool](rdb, string(marshal), true, time.Minute*30)
+	message_queue.RedisMessagePublish(rdb, "plays", playReq)
+	return nil
 }
 
 // extractNumber 提取字符串中的数字

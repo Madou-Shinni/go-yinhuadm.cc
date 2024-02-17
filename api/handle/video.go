@@ -200,3 +200,26 @@ func (cl *VideoHandle) Play(context *gin.Context) {
 
 	response.Success(context, res)
 }
+
+// ReloadPlay 更新Play
+// @Tags     Video
+// @Summary  更新Play
+// @accept   application/json
+// @Produce  application/json
+// @Param    data query     domain.Video true "更新Play"
+// @Success  200  {string} string            "{"code":200,"msg":"更新成功","data":{}"}"
+// @Router   /video/play [put]
+func (cl *VideoHandle) ReloadPlay(context *gin.Context) {
+	var request req.PlayReq
+	if err := context.ShouldBindQuery(&request); err != nil {
+		response.Error(context, constant.CODE_INVALID_PARAMETER, constant.CODE_INVALID_PARAMETER.Msg())
+		return
+	}
+
+	if err := cl.s.ReloadPlay(request); err != nil {
+		response.Error(context, constant.CODE_UPDATE_FAILED, constant.CODE_UPDATE_FAILED.Msg())
+		return
+	}
+
+	response.Success(context)
+}

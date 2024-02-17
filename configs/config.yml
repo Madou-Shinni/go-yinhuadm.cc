@@ -15,7 +15,7 @@ mysql:
   min-idle-conn: 5
 # redis
 redis:
-  addr: "127.0.0.1:6379"
+  addr: "10.0.81.204:6379"
   password: ""
   db: 0
 # jwt
@@ -31,5 +31,5 @@ jwt:
   secret: yoursecret
 #elastic
 elastic:
-  path: http://127.0.0.1
+  path: http://172.18.0.1
   port: 9200

@@ -15,6 +15,7 @@ func VideoRouterRegister(r *gin.RouterGroup) {
 		videoGroup.DELETE("/delete-batch", videoHandle.DeleteByIds)
 		videoGroup.GET("", videoHandle.Find)
 		videoGroup.GET("/play", videoHandle.Play)
+		videoGroup.PUT("/play", videoHandle.ReloadPlay)
 		videoGroup.GET("/home", videoHandle.Home)
 		videoGroup.GET("/list", videoHandle.List)
 		videoGroup.PUT("", videoHandle.Update)
