@@ -225,8 +225,9 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 }
 
 func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
+	var err error
 	query := elastic.NewTermQuery("videoId", playReq.VideoID)
-	_, err := glob.Es.DeleteByQuery("plays").Query(query).Do(context.Background())
+	_, err = glob.Es.DeleteByQuery("plays").Query(query).Do(context.Background())
 	if err != nil {
 		return err
 	}
