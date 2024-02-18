@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+var (
+	ErrorPlayUrlExpired = fmt.Errorf("play url expired")
+)
+
 // 如果您需要将星期几转换为中文，您可以使用一个 map 来进行转换
 var weekdayMap = map[time.Weekday]string{
 	time.Sunday:    "周日",
@@ -226,21 +230,42 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 
 func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
 	var err error
-	query := elastic.NewTermQuery("videoId", playReq.VideoID)
-	_, err = glob.Es.DeleteByQuery("plays").Query(query).Do(context.Background())
+	var ok bool
+
+	// 加锁
+	mutex := glob.Redsync.NewMutex(fmt.Sprintf("reload_play:%s", playReq.PlayUrl))
+	err = mutex.Lock()
+	if err != nil {
+		return err
+	}
+	defer mutex.Unlock()
+
+	// 检查播放地址是否过期
+	ok, err = checkPlayExpired(playReq.PlayUrl)
 	if err != nil {
 		return err
 	}
 
-	// 发布消息更新播放页
-	rdb := global.Rdb
-	marshal, _ := json.Marshal(playReq)
-	val := rdb.Exists(string(marshal)).Val()
-	if val != 0 {
+	if !ok {
+		// 不需要更新
 		return nil
 	}
-	// 半小时更新一次
-	_, err = tools.SetRedisStrResult[bool](rdb, string(marshal), true, time.Minute*30)
+
+	// 发布消息更新播放页
+	rdb := global.Rdb
+
+	// 构建多字段 term 查询
+	termQuery1 := elastic.NewTermQuery("id", playReq.VideoID)
+	termQuery2 := elastic.NewTermQuery("sid", playReq.PlayLine)
+	termQuery3 := elastic.NewTermQuery("nid", playReq.EpisodeID)
+	// 创建 Bool 查询
+	boolQuery := elastic.NewBoolQuery()
+	boolQuery = boolQuery.Must(termQuery1, termQuery2, termQuery3)
+
+	_, err = glob.Es.DeleteByQuery("plays").Query(boolQuery).Do(context.Background())
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
@@ -266,4 +291,33 @@ func extractNumber(input string) []int {
 
 	// 如果未找到匹配的数字，返回空字符串或其他合适的默认值
 	return nil
+}
+
+// checkPlayExpired 检查播放地址是否过期
+// return flag 是否需要更新 err 错误信息
+func checkPlayExpired(url string) (flag bool, err error) {
+	errorLength := 24
+	data := map[string]interface{}{
+		"url": url,
+	}
+	resp, err := tools.NewRequest(tools.GET, fmt.Sprintf("https://player.mcue.cc/yinhua/"), data, nil)
+	if err != nil {
+		fmt.Println("err", err)
+		return
+	}
+
+	// 使用正则表达式提取 url 数据
+	re := regexp.MustCompile(`"url"\s*:\s*"([^"]+)"`)
+	match := re.FindStringSubmatch(string(resp))
+	//fmt.Println("match", match)
+	if len(match) >= 2 {
+		if len(match[1]) <= errorLength {
+			// 需要更新
+			return true, nil
+		}
+		// 不需要更新
+		return false, nil
+	}
+
+	return false, fmt.Errorf("regexp error")
 }

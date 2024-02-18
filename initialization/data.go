@@ -10,7 +10,10 @@ import (
 	"github.com/Madou-Shinni/go-logger"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-redis/redis"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/olivere/elastic/v7"
+	goredislib "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -26,6 +29,7 @@ func init() {
 	MysqlInit(conf.Conf.MysqlConfig)
 	RedisInit(conf.Conf.RedisConfig)
 	ElasticInit()
+	RedsyncInit()
 }
 
 // 初始化配置
@@ -130,4 +134,28 @@ func NewElasticClient(config *conf.ElasticSearchConfig) (*elastic.Client, error)
 	}
 
 	return client, err
+}
+
+func RedsyncInit() {
+	client, err := NewRedsync(conf.Conf.RedisConfig)
+	if err != nil {
+		logger.Error("NewRedsync", zap.Error(err))
+		return
+	}
+
+	glob.Redsync = client
+}
+
+func NewRedsync(config *conf.RedisConfig) (*redsync.Redsync, error) {
+	client := goredislib.NewClient(&goredislib.Options{
+		Addr: config.Addr,
+	})
+	pool := goredis.NewPool(client)
+	rs := redsync.New(pool)
+
+	if rs == nil {
+		return nil, fmt.Errorf("client is nil")
+	}
+
+	return rs, nil
 }
