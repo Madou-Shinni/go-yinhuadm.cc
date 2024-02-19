@@ -266,9 +266,6 @@ func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	message_queue.RedisMessagePublish(rdb, "plays", playReq)
 	return nil
 }
