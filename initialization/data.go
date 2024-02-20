@@ -128,9 +128,14 @@ func ElasticInit() {
 func NewElasticClient(config *conf.ElasticSearchConfig) (*elastic.Client, error) {
 	logger := log.New(os.Stdout, "ES", log.LstdFlags)
 	// 创建 Elasticsearch 客户端
-	client, err := elastic.NewClient(elastic.SetURL(fmt.Sprint(config.Path, ":", config.Port)), elastic.SetSniff(false), elastic.SetTraceLog(logger))
+	client, err := elastic.NewClient(
+		elastic.SetURL(fmt.Sprint(config.Path, ":", config.Port)),
+		elastic.SetSniff(false),
+		elastic.SetTraceLog(logger),
+		elastic.SetBasicAuth(config.Username, config.Password),
+	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return client, err

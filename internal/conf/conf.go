@@ -44,6 +44,8 @@ type JwtConfig struct {
 }
 
 type ElasticSearchConfig struct {
-	Path string `json:"path,omitempty" mapstructure:"path"`
-	Port int    `json:"port,omitempty" mapstructure:"port"`
+	Path     string `json:"path,omitempty" mapstructure:"path"`
+	Port     int    `json:"port,omitempty" mapstructure:"port"`
+	Username string `json:"username,omitempty" mapstructure:"username"`
+	Password string `json:"password,omitempty" mapstructure:"password"`
 }
