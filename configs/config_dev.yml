@@ -1,6 +1,6 @@
 app:
   # 环境：dev or prod
-  env: dev
+  env: prod
   # 分布式节点(用于生成分布式id应保证各个机器节点不一致)
   machineID: 1
   server-port: 8080
@@ -15,7 +15,7 @@ mysql:
   max-open-conns: 100
 # redis
 redis:
-  addr: "127.0.0.1:6379"
+  addr: "185.242.234.97:6379"
   password: ""
   db: 0
 # jwt
@@ -29,3 +29,9 @@ jwt:
   issuer: sni
   # 密钥
   secret: yoursecret
+#elastic
+elastic:
+  path: http://185.242.234.97
+  port: 9200
+  username: elastic
+  password: 123456
