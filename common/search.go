@@ -29,7 +29,9 @@ func MatchQuery[T any](es *elasticsearch.TypedClient, index string, from, size i
 				},
 			},
 			Highlight: &types.Highlight{
-				Fields: hlFields,
+				Fields:   hlFields,
+				PreTags:  []string{"<em className='text-pink-500'>"}, // 高亮标签
+				PostTags: []string{"</em>"},                          // 高亮标签
 			},
 		}).
 		SourceExcludes_(excludeFields...).

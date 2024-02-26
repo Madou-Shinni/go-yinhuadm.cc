@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Madou-Shinni/gin-quickstart/common"
@@ -11,7 +12,6 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/tools/pagelimit"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
-	"github.com/goccy/go-json"
 )
 
 type VideoRepo struct {
@@ -76,7 +76,7 @@ func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, er
 	searchFields := []string{"title", "introduction"}
 	excludeFields := []string{"episodeList"}
 
-	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword, excludeFields, nil)
+	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword, excludeFields, searchFields)
 	if err != nil {
 		return nil, 0, err
 	}
