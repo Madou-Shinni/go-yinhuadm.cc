@@ -8,13 +8,14 @@ import (
 )
 
 // MatchQuery 根据关键字搜索
-func MatchQuery[T any](es *elastic.Client, index string, from, size int, searchFields []string, keyword string) (list []T, total int64, err error) {
+func MatchQuery[T any](es *elastic.Client, index string, from, size int, searchFields []string, keyword string, excludeFields []string) (list []T, total int64, err error) {
 	// 创建查询
 	query := elastic.NewMultiMatchQuery(keyword, searchFields...)
 
 	searchResult, err := es.Search().
 		Index(index).
 		Query(query).
+		Source(elastic.NewFetchSourceContext(true).Exclude(excludeFields...)).
 		From(from).
 		Size(size).
 		Do(context.TODO())

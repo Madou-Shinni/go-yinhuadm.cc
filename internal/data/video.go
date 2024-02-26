@@ -71,8 +71,9 @@ func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, er
 	from, size := pagelimit.OffsetLimit(page.PageNum, page.PageSize)
 
 	searchFields := []string{"title", "introduction"}
+	excludeFields := []string{"episodeList"}
 
-	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword)
+	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword, excludeFields)
 	if err != nil {
 		return nil, 0, err
 	}
