@@ -10,8 +10,8 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/pkg/global"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/request"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/tools/pagelimit"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/goccy/go-json"
-	"github.com/olivere/elastic/v7"
 )
 
 type VideoRepo struct {
@@ -44,14 +44,17 @@ func (s *VideoRepo) Update(video map[string]interface{}) error {
 }
 
 func (s *VideoRepo) Find(video domain.Video) (domain.Video, error) {
+	query := types.NewQuery()
+	query.Term["id"] = types.TermQuery{Value: video.ID}
+
 	ctx := context.Background()
-	resp, err := glob.Es.Search().Index(video.Index()).Query(elastic.NewTermQuery("id", video.ID)).Do(ctx)
+	resp, err := glob.Es.Search().Index(video.Index()).Query(query).Do(ctx)
 	if err != nil {
 		return domain.Video{}, err
 	}
 
 	if len(resp.Hits.Hits) > 0 {
-		err = json.Unmarshal(resp.Hits.Hits[0].Source, &video)
+		err = json.Unmarshal(resp.Hits.Hits[0].Source_, &video)
 		if err != nil {
 			return domain.Video{}, err
 		}
@@ -73,7 +76,7 @@ func (s *VideoRepo) List(page domain.PageVideoSearch) ([]domain.Video, int64, er
 	searchFields := []string{"title", "introduction"}
 	excludeFields := []string{"episodeList"}
 
-	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword, excludeFields)
+	videoList, total, err = common.MatchQuery[domain.Video](glob.Es, domain.Video{}.Index(), from, size, searchFields, page.Keyword, excludeFields, nil)
 	if err != nil {
 		return nil, 0, err
 	}

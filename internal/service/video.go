@@ -14,8 +14,8 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/pkg/tools"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/tools/message_queue"
 	"github.com/Madou-Shinni/go-logger"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/goccy/go-json"
-	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
 	"regexp"
 	"strconv"
@@ -131,17 +131,18 @@ func (s *VideoService) Home() (resp.Home, error) {
 		home resp.Home
 	)
 
-	query := elastic.NewMatchAllQuery()
-	res, err := glob.Es.Search().Index().Query(query).Do(context.Background())
+	query := types.NewQuery()
+	query.MatchAll = types.NewMatchAllQuery()
+	res, err := glob.Es.Search().Index("home").Query(query).Do(context.Background())
 	if err != nil {
 		return home, err
 	}
-	if res.Hits == nil {
+	if res.Hits.Hits == nil {
 		return home, fmt.Errorf("searchResult.Hits is nil")
 	}
 
 	for _, hit := range res.Hits.Hits {
-		err = json.Unmarshal(hit.Source, &home)
+		err = json.Unmarshal(hit.Source_, &home)
 		if err != nil {
 			return home, err
 		}
@@ -162,8 +163,11 @@ func (s *VideoService) Home() (resp.Home, error) {
 		ID       int       `json:"id"`
 		UpdateAt time.Time `json:"updateAt"`
 	}
-	termsQuery := elastic.NewTermsQuery("id", ids...)
-	resp, err := glob.Es.Search().Index("videos").Query(termsQuery).Size(len(ids)).Do(context.Background())
+	termsQuery := types.NewTermsQuery()
+	termsQuery.TermsQuery["id"] = ids
+	newQuery := types.NewQuery()
+	newQuery.Terms = termsQuery
+	resp, err := glob.Es.Search().Index("videos").Query(newQuery).Size(len(ids)).Do(context.Background())
 	if err != nil {
 		return home, err
 	}
@@ -172,7 +176,7 @@ func (s *VideoService) Home() (resp.Home, error) {
 	weekMap := make(map[int]string, len(resp.Hits.Hits))
 	for _, hit := range resp.Hits.Hits {
 		var updateAtData UpdateAtData
-		err = json.Unmarshal(hit.Source, &updateAtData)
+		err = json.Unmarshal(hit.Source_, &updateAtData)
 		if err != nil {
 			return home, err
 		}
@@ -195,15 +199,19 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 	var result resp.PlayResp
 
 	// 构建多字段 term 查询
-	termQuery1 := elastic.NewTermQuery("id", req.VideoID)
-	termQuery2 := elastic.NewTermQuery("sid", req.PlayLine)
-	termQuery3 := elastic.NewTermQuery("nid", req.EpisodeID)
+	termsQuery := types.NewTermsQuery()
+	termsQuery.TermsQuery["id"] = []interface{}{req.VideoID}
+	termsQuery.TermsQuery["sid"] = []interface{}{req.PlayLine}
+	termsQuery.TermsQuery["nid"] = []interface{}{req.EpisodeID}
+	query := types.Query{Terms: termsQuery}
 
 	// 创建 Bool 查询
-	boolQuery := elastic.NewBoolQuery()
-	boolQuery = boolQuery.Must(termQuery1, termQuery2, termQuery3)
+	newBoolQuery := types.NewBoolQuery()
+	newBoolQuery.Must = []types.Query{query}
+	newQuery := types.NewQuery()
+	newQuery.Bool = newBoolQuery
 
-	resp, err := glob.Es.Search().Index("plays").Query(boolQuery).Do(context.Background())
+	resp, err := glob.Es.Search().Index("plays").Query(newQuery).Do(context.Background())
 	if err != nil {
 		return result, err
 	}
@@ -212,7 +220,7 @@ func (s *VideoService) Play(req req.PlayReq) (resp.PlayResp, error) {
 		return result, nil
 	}
 
-	err = json.Unmarshal(resp.Hits.Hits[0].Source, &result)
+	err = json.Unmarshal(resp.Hits.Hits[0].Source_, &result)
 	if err != nil {
 		return result, err
 	}
@@ -255,14 +263,19 @@ func (s *VideoService) ReloadPlay(playReq req.PlayReq) error {
 	rdb := global.Rdb
 
 	// 构建多字段 term 查询
-	termQuery1 := elastic.NewTermQuery("id", playReq.VideoID)
-	termQuery2 := elastic.NewTermQuery("sid", playReq.PlayLine)
-	termQuery3 := elastic.NewTermQuery("nid", playReq.EpisodeID)
-	// 创建 Bool 查询
-	boolQuery := elastic.NewBoolQuery()
-	boolQuery = boolQuery.Must(termQuery1, termQuery2, termQuery3)
+	termsQuery := types.NewTermsQuery()
+	termsQuery.TermsQuery["id"] = []interface{}{playReq.VideoID}
+	termsQuery.TermsQuery["sid"] = []interface{}{playReq.PlayLine}
+	termsQuery.TermsQuery["nid"] = []interface{}{playReq.EpisodeID}
+	query := types.Query{Terms: termsQuery}
 
-	_, err = glob.Es.DeleteByQuery("plays").Query(boolQuery).Do(context.Background())
+	// 创建 Bool 查询
+	newBoolQuery := types.NewBoolQuery()
+	newBoolQuery.Must = []types.Query{query}
+	newQuery := types.NewQuery()
+	newQuery.Bool = newBoolQuery
+
+	_, err = glob.Es.DeleteByQuery("plays").Query(newQuery).Do(context.Background())
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package initialization
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	glob "github.com/Madou-Shinni/gin-quickstart/global"
@@ -8,18 +9,19 @@ import (
 	"github.com/Madou-Shinni/gin-quickstart/internal/domain"
 	"github.com/Madou-Shinni/gin-quickstart/pkg/global"
 	"github.com/Madou-Shinni/go-logger"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-redis/redis"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
-	"github.com/olivere/elastic/v7"
 	goredislib "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
-	"os"
+	"net"
+	"net/http"
+	"time"
 )
 
 // 数据初始化
@@ -125,20 +127,37 @@ func ElasticInit() {
 	glob.Es = client
 }
 
-func NewElasticClient(config *conf.ElasticSearchConfig) (*elastic.Client, error) {
-	logger := log.New(os.Stdout, "ES", log.LstdFlags)
+func NewElasticClient(config *conf.ElasticSearchConfig) (*elasticsearch.TypedClient, error) {
+	//logger := log.New(os.Stdout, "ES", log.LstdFlags)
 	// 创建 Elasticsearch 客户端
-	client, err := elastic.NewClient(
-		elastic.SetURL(fmt.Sprint(config.Path, ":", config.Port)),
-		elastic.SetSniff(false),
-		elastic.SetTraceLog(logger),
-		elastic.SetBasicAuth(config.Username, config.Password),
-	)
-	if err != nil {
-		return nil, err
+	//client, err := elastic.NewClient(
+	//	elastic.SetURL(fmt.Sprint(config.Path, ":", config.Port)),
+	//	elastic.SetSniff(false),
+	//	//elastic.SetTraceLog(logger),
+	//	elastic.SetBasicAuth(config.Username, config.Password),
+	//)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	cfg := elasticsearch.Config{
+		Addresses: []string{fmt.Sprint(config.Path, ":", config.Port)},
+		Username:  config.Username,
+		Password:  config.Password,
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost:   10,
+			ResponseHeaderTimeout: time.Second * 2,
+			DialContext:           (&net.Dialer{Timeout: time.Second * 2}).DialContext,
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+				// ...
+			},
+		},
 	}
 
-	return client, err
+	newClient, err := elasticsearch.NewTypedClient(cfg)
+
+	return newClient, err
 }
 
 func RedsyncInit() {
