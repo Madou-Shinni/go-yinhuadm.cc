@@ -8,13 +8,13 @@ import (
 // Video 视频
 type Video struct {
 	ID           int64          `json:"id,omitempty" form:"id"`
-	Title        string         `json:"title,omitempty"`
-	Tags         []string       `json:"tags,omitempty"`
-	Cover        string         `json:"cover,omitempty"`
-	Introduction string         `json:"introduction,omitempty"`
-	Director     string         `json:"director,omitempty"`
-	Screenwriter string         `json:"screenwriter,omitempty"`
-	Note         string         `json:"note,omitempty"`
+	Title        string         `json:"title"`
+	Tags         []string       `json:"tags"`
+	Cover        string         `json:"cover"`
+	Introduction string         `json:"introduction"`
+	Director     string         `json:"director"`
+	Screenwriter string         `json:"screenwriter"`
+	Note         string         `json:"note"`
 	Starrings    []string       `json:"starrings,omitempty"`
 	Thirdlink    ThirdPartyLink `json:"thirdlink"`
 	UpdateAt     time.Time      `json:"updateAt"`
